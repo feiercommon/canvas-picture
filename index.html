@@ -212,7 +212,11 @@
                 width:$(this).val()+"px",height:$(this).val()+"px"
             })
         });
-
+        $(".aside-menu-list li").click(function () {
+            $(".xp").css("display","none");
+            $(".selectarea").css("border","none");
+            drawObj.isshowxp=false;
+        });
         //滤镜
         function m(dataobj,num,x,y) {
             var width = dataobj.width, height = dataobj.height;
