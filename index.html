@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="js/jquery.js"></script>
+    <script src="js/shape.js"></script>
+    <script src="js/picture.js"></script>
+    <link rel="stylesheet" href="css/canvas.css">
+</head>
+<body>
+<div class="box">
+    <ul class="menu">
+        <li class="menu-list">文件</li>
+        <li class="menu-list">画布</li>
+        <li class="menu-list">画布方式</li>
+        <li class="menu-list">颜色</li>
+        <li class="menu-list">线条宽度</li>
+        <li class="menu-list">擦除</li>
+        <li class="menu-list">滤镜</li>
+        <li class="menu-list">截取</li>
+    </ul>
+    <div class="main">
+        <div class="welcome">欢迎来到绘图工具</div>
+        <aside class="aside-menu">
+            <ul class="aside-menu-list">
+                <li>新建</li>
+                <li>返回</li>
+                <li>保存</li>
+            </ul>
+            <ul class="aside-menu-list">
+                <li data-role="line">画线</li>
+                <li data-role="rect">矩形</li>
+                <li data-role="arc">圆</li>
+                <li data-role="bian">多边形</li>
+                <li data-role="jiao">多角形</li>
+                <li data-role="pen">铅笔工具</li>
+            </ul>
+            <ul class="aside-menu-list">
+                <li data-role="stroke">描边</li>
+                <li data-role="fill">填充</li>
+            </ul>
+            <div class="aside-menu-list">
+                border:<input type="color" data-role="border">
+                background:<input type="color" data-role="fill">
+            </div>
+            <ul class="aside-menu-list">
+                <li data-role="1">细</li>
+                <li data-role="3">中</li>
+                <li data-role="5">粗</li>
+                <li data-role="null"><input type="number"placeholder="自定义"></li>
+            </ul>
+            <ul class="aside-menu-list">
+                <li><input type="number"></li>
+            </ul>
+            <ul class="aside-menu-list">
+                <li data-role="fx">反相</li>
+                <li data-role="m">马赛克</li>
+                <li data-role="blur">模糊</li>
+                <input type="file">
+                <img src="" alt="" hidden>
+            </ul>
+            <ul class="aside-menu-list"></ul>
+        </aside>
+        <div class="canvas-box">
+            <canvas></canvas>
+            <div class="copy"></div>
+            <div class="xp"></div>
+            <div class="selectarea"></div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    window.onload=function(){
+        var canvasBox=document.querySelector(".canvas-box");
+        var asideMenu=document.querySelector(".aside-menu");
+        var welcome=document.querySelector(".welcome");
+        var canvasBoxW=canvasBox.offsetWidth;
+        var canvasBoxH=canvasBox.offsetHeight;
+        var canvas=document.querySelector("canvas");
+        var cobj=canvas.getContext("2d");
+        var copy=document.querySelector(".copy");
+        var selectarea=document.querySelector(".selectarea");
+        var xp=document.querySelector(".xp");
+        canvas.width=canvasBoxW;
+        canvas.height=canvasBoxH;
+
+        welcome.onclick=function(){
+            welcome.style.display="none";
+            asideMenu.style.display="block";
+            canvasBox.style.display="block";
+        };
+        var drawObj=new shape(canvas,copy,cobj);    //实例化
+        //菜单操作
+        $(".menu-list").click(function(){
+            var index=$(".menu-list").index(this);
+            $(".aside-menu-list").hide().eq(index).slideToggle(100);
+        });
+
+        //文件
+        $(".aside-menu-list:eq(0) li").click(function(){
+            //新建
+            var index=$(".aside-menu-list:eq(0) li").index(this);
+            if(index==0){
+                if(drawObj.history.length>0){
+                    var yes=confirm("是否保存");
+                    if(yes){
+                        var url=canvas.toDataURL();
+                        var newurl=url.replace("image/png","stream/octet");
+                        location.href=newurl;
+                    }
+                }
+                cobj.clearRect(0,0,canvas.width,canvas.height);
+                drawObj.history=[];
+
+            }else if(index==1){
+                //返回
+                if(drawObj.history.length==0){
+                    //no
+                    cobj.clearRect(0,0,canvas.width,canvas.height);
+                    setTimeout(function(){
+                        alert("不能返回");
+                    },10)
+                }else{
+                    if(drawObj.back){
+                        if(drawObj.history.length==1){
+                            drawObj.history.pop();
+                            cobj.clearRect(0,0,canvas.width,canvas.height);
+                        }else{
+                            drawObj.history.pop();
+                            cobj.putImageData(drawObj.history.pop(),0,0);
+                        }
+                    }else{
+                        cobj.putImageData(drawObj.history.pop(),0,0);
+                    }
+                    drawObj.back=false;
+                }
+
+            }else if(index==2){
+                //保存
+                var url=canvas.toDataURL();
+                var newurl=url.replace("image/png","stream/octet");
+                location.href=newurl;
+            }
+
+        });
+
+
+        //画布
+        $(".aside-menu-list:eq(1) li").click(function(){
+            var fn=$(this).attr("data-role");
+            if(fn=="bian"){
+                drawObj.bianNum=prompt("请输入边数",drawObj.bianNum);
+            }
+            if(fn=="jiao"){
+                drawObj.jiaoNum=prompt("请输入角数",drawObj.jiaoNum);
+            }
+            if(fn!=="pen"){
+                drawObj.type=fn;
+                drawObj.draw();
+            }else{
+                drawObj.pen();
+            }
+        });
+
+
+        //画图方式
+        $(".aside-menu-list:eq(2) li").click(function(){
+            var fn=$(this).attr("data-role");
+            drawObj.style=fn;
+            drawObj.draw();
+        });
+
+
+
+        //颜色
+        $(".aside-menu-list:eq(3) input").change(function(){
+            drawObj[$(this).attr("data-role")]=$(this).val();
+            drawObj.draw();
+        });
+
+
+        //线条宽度
+        $(".aside-menu-list:eq(4) li").click(function(){
+            var num=$(this).attr("data-role");
+            if(num!=="null"){
+                drawObj.linew=num;
+                drawObj.draw();
+            }
+        })
+
+        $(".aside-menu-list:eq(4) li input").change(function(){
+            var num=$(this).val();
+            drawObj.linew =num;
+            drawObj.draw();
+        })
+
+       //擦除
+        $(".menu-list:eq(5)").click(function(){
+            var xpobj=$(".xp");
+            drawObj.xp(xpobj);
+            drawObj.isshowxp=true;
+            $(".aside-menu-list:last-child input").val=drawObj.xpsize;
+        });
+        $(".aside-menu-list:eq(5) input").change(function(){
+            drawObj.xpsize=$(this).val();
+            $(".xp").css({
+                width:$(this).val()+"px",height:$(this).val()+"px"
+            })
+        });
+
+        //滤镜
+        function m(dataobj,num,x,y) {
+            var width = dataobj.width, height = dataobj.height;
+            var num = num;
+            var w = width / num;
+            var h = height / num;
+            for (var i = 0; i < num; i++) {//行
+                for (var j = 0; j < num; j++) {//列  x
+                    var dataObj = cobj.getImageData(j * w, i * h, w, h);
+
+                    var r = 0, g = 0, b = 0;
+                    for (var k = 0; k < dataObj.width * dataObj.height; k++) {
+                        r += dataObj.data[k * 4 + 0];
+                        g += dataObj.data[k * 4 + 1];
+                        b += dataObj.data[k * 4 + 2];
+                    }
+
+                    r = parseInt(r / (dataObj.width * dataObj.height));
+                    g = parseInt(g / (dataObj.width * dataObj.height));
+                    b = parseInt(b / (dataObj.width * dataObj.height));
+                    // console.log(r + "--" + g + "--" + b);
+
+                    for (var k = 0; k < dataObj.width * dataObj.height; k++) {
+                        dataObj.data[k * 4 + 0] = r;
+                        dataObj.data[k * 4 + 1] = g;
+                        dataObj.data[k * 4 + 2] = b;
+                    }
+
+
+                    cobj.putImageData(dataObj, x + j * w, y+i * h);
+
+                }
+
+            }
+
+        }
+
+        /*模糊*/
+        function blur(dataobj,num,x,y) {
+            var width = dataobj.width, height = dataobj.height;
+            var arr=[];
+            var num = num;
+            for (var i = 0; i < height; i++) {//行
+                for (var j = 0; j < width; j++) {//列  x
+                    var x1=j+num>width?j-num:j;
+                    var y1=i+num>height?i-num:i;
+                    var dataObj = cobj.getImageData(x1, y1,num, num);
+
+                    var r = 0, g = 0, b = 0;
+                    for (var k = 0; k < dataObj.width * dataObj.height; k++) {
+                        r += dataObj.data[k * 4 + 0];
+                        g += dataObj.data[k * 4 + 1];
+                        b += dataObj.data[k * 4 + 2];
+                    }
+
+                    r = parseInt(r / (dataObj.width * dataObj.height));
+                    g = parseInt(g / (dataObj.width * dataObj.height));
+                    b = parseInt(b / (dataObj.width * dataObj.height));
+
+                    arr.push(r,g,b,255);
+
+                }
+
+            }
+
+            for(var i=0;i<dataobj.data.length;i++){
+                dataobj.data[i]=arr[i]
+            }
+            cobj.putImageData(dataobj,x,y);
+
+        }
+
+        /**反相**/
+        function fx(dataobj,x,y){
+            for(var i=0;i<dataobj.width*dataobj.height;i++){
+                dataobj.data[i*4+0]=255-dataobj.data[i*4+0];
+                dataobj.data[i*4+1]=255-dataobj.data[i*4+1];
+                dataobj.data[i*4+2]=255-dataobj.data[i*4+2];
+                dataobj.data[i*4+3]=255
+
+            }
+
+            cobj.putImageData(dataobj,x,y);
+        }
+        /******图形处理*******/
+        var file=$(".aside-menu-list:eq(6) input")[0];
+        var img=$(".aside-menu-list:eq(6) img")[0];
+        file.onchange=function(){
+            var fileObj=this.files[0];
+            var reader=new FileReader();
+            reader.readAsDataURL(fileObj);
+            reader.onload=function(e){
+                var that=this;
+                img.src= e.target.result;
+                cobj.drawImage(img,0,0,canvas.width,canvas.height);
+                dataobj=cobj.getImageData(0,0,canvas.width,canvas.height);
+            }
+        };
+
+        $(".aside-menu-list:eq(6) li").click(function(){
+            var index=$(".aside-menu-list:eq(6) li").index(this);
+            var num=$(this).attr("data-role");
+            if(num=="blur"){
+                blur(dataobj,5,0,0)
+            }else if(num=="fx"){
+                // alert(1);
+                fx(dataobj,0,0)
+            }else if(num=="m"){
+                m(dataobj,50,0,0)
+            }
+
+        });
+
+        //截取
+        $(".menu-list:last-child").click(function(){
+            drawObj.select($(".selectarea"));
+            selectarea.style.border="1px dotted #000";
+        })
+
+    }
+</script>
+
+</html>
